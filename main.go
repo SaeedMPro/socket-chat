@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -21,22 +22,23 @@ func init() {
 		fmt.Println("Error loading config:", err)
 		os.Exit(1)
 	}
+
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: go run main.go [client-one|client-two]")
+		os.Exit(1)
+	}
+
 	util.ClearScreen()
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go [client-one|client-two]")
-		return
-	}
-	
 	clientType := os.Args[1]
 	self, other := getClientConfig(clientType)
 
 	go startListener(self)
-	connectToPeer(other)
-	
-	select {} 
+	go connectToPeer(other)
+
+	select {}
 }
 
 func getClientConfig(clientType string) (model.Client, model.Client) {
@@ -46,9 +48,7 @@ func getClientConfig(clientType string) (model.Client, model.Client) {
 	case "client-two":
 		return clientConfig.ClientTwo, clientConfig.ClientOne
 	default:
-		fmt.Println("Invalid client type")
-		os.Exit(1)
-		return model.Client{}, model.Client{}
+		panic("Invalid client type")
 	}
 }
 
@@ -79,13 +79,16 @@ func handleNewConnection(conn net.Conn) {
 		currentConn.Close()
 	}
 	currentConn = conn
+	fmt.Println("New connection handled...")
+	util.ClearScreen()
 
-	//TODO : implement send and receive message
+	go receiveMessages(conn)
+	go sendMessages(conn)
 }
 
 func connectToPeer(peer model.Client) {
 	peerAddr := fmt.Sprintf("%v:%v", peer.Host, peer.Port)
-	
+
 	for {
 		connection, err := net.Dial("tcp", peerAddr)
 		if err != nil {
@@ -94,5 +97,36 @@ func connectToPeer(peer model.Client) {
 		}
 		handleNewConnection(connection)
 		break
+	}
+}
+
+func receiveMessages(conn net.Conn) {
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
+
+	for {
+		msg, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Connection lost")
+			return
+		}
+		fmt.Printf("\nPeer: %s> ", msg)
+	}
+}
+
+func sendMessages(conn net.Conn) {
+	defer conn.Close()
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		fmt.Print("You: ")
+		scanner.Scan()
+		msg := scanner.Text()
+
+		_, err := fmt.Fprintln(conn, msg)
+		if err != nil {
+			fmt.Println("Error sending message:", err)
+			return
+		}
 	}
 }
