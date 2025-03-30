@@ -36,7 +36,7 @@ func main() {
 	self, other := getClientConfig(clientType)
 
 	go startListener(self)
-	go connectToPeer(other)
+	connectToPeer(other)
 
 	select {}
 }
@@ -48,12 +48,12 @@ func getClientConfig(clientType string) (model.Client, model.Client) {
 	case "client-two":
 		return clientConfig.ClientTwo, clientConfig.ClientOne
 	default:
-		panic("Invalid client type")
+		panic("Invalid argument input!!")
 	}
 }
 
 func startListener(self model.Client) {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", self.Host, self.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", self.Host, self.Port))
 	if err != nil {
 		fmt.Printf("Error starting listener: %v\n", err)
 		return
@@ -75,12 +75,15 @@ func handleNewConnection(conn net.Conn) {
 	connMux.Lock()
 	defer connMux.Unlock()
 
+
 	if currentConn != nil {
 		currentConn.Close()
 	}
 	currentConn = conn
-	fmt.Println("New connection handled...")
 	util.ClearScreen()
+
+	fmt.Println("-----------------------------Connection created-----------------------------")
+	fmt.Println("  <YOU>\t\t\t\t\t\t\t\t<Peer>")
 
 	go receiveMessages(conn)
 	go sendMessages(conn)
@@ -110,7 +113,7 @@ func receiveMessages(conn net.Conn) {
 			fmt.Println("Connection lost")
 			return
 		}
-		fmt.Printf("\nPeer: %s> ", msg)
+		fmt.Printf("\n\t\t\t\t\t\t\t\t %s ", msg)
 	}
 }
 
@@ -119,7 +122,7 @@ func sendMessages(conn net.Conn) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Print("You: ")
+		fmt.Print("\n ")
 		scanner.Scan()
 		msg := scanner.Text()
 
