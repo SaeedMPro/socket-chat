@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/SaeedMPro/socket-chat/config"
 	"github.com/SaeedMPro/socket-chat/model"
 	"github.com/SaeedMPro/socket-chat/util"
 )
@@ -18,7 +19,7 @@ var (
 )
 
 func init() {
-	if err := util.LoadConfig("./config.json", &clientConfig); err != nil {
+	if err := config.LoadConfig("./config/config.json", &clientConfig); err != nil {
 		fmt.Println("Error loading config:", err)
 		os.Exit(1)
 	}
@@ -33,23 +34,12 @@ func init() {
 
 func main() {
 	clientType := os.Args[1]
-	self, other := getClientConfig(clientType)
+	self, other := config.GetClientConfig(clientType, clientConfig)
 
 	go startListener(self)
 	connectToPeer(other)
 
 	select {}
-}
-
-func getClientConfig(clientType string) (model.Client, model.Client) {
-	switch clientType {
-	case "client-one":
-		return clientConfig.ClientOne, clientConfig.ClientTwo
-	case "client-two":
-		return clientConfig.ClientTwo, clientConfig.ClientOne
-	default:
-		panic("Invalid argument input!!")
-	}
 }
 
 func startListener(self model.Client) {
@@ -71,6 +61,20 @@ func startListener(self model.Client) {
 
 }
 
+func connectToPeer(peer model.Client) {
+	peerAddr := peer.Address()
+	
+	for {
+		connection, err := net.Dial("tcp", peerAddr)
+		if err != nil {
+			fmt.Printf("Connection attempt failed: %v\n", err)
+			continue
+		}
+		handleNewConnection(connection)
+		break
+	}
+}
+
 func handleNewConnection(conn net.Conn) {
 	connMux.Lock()
 	defer connMux.Unlock()
@@ -89,23 +93,9 @@ func handleNewConnection(conn net.Conn) {
 	go sendMessages(conn, done)
 }
 
-func connectToPeer(peer model.Client) {
-	peerAddr := peer.Address()
-
-	for {
-		connection, err := net.Dial("tcp", peerAddr)
-		if err != nil {
-			fmt.Printf("Connection attempt failed: %v\n", err)
-			continue
-		}
-		handleNewConnection(connection)
-		break
-	}
-}
-
 func receiveMessages(conn net.Conn, done chan struct{}) {
 	reader := bufio.NewReader(conn)
-
+	
 	for {
 		msg, err := reader.ReadString('\n')
 		if err != nil {
