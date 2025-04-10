@@ -53,7 +53,7 @@ func getClientConfig(clientType string) (model.Client, model.Client) {
 }
 
 func startListener(self model.Client) {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%v", self.Host, self.Port))
+	listener, err := net.Listen("tcp", self.Address())
 	if err != nil {
 		fmt.Printf("Error starting listener: %v\n", err)
 		return
@@ -75,7 +75,6 @@ func handleNewConnection(conn net.Conn) {
 	connMux.Lock()
 	defer connMux.Unlock()
 
-
 	if currentConn != nil {
 		currentConn.Close()
 	}
@@ -85,12 +84,13 @@ func handleNewConnection(conn net.Conn) {
 	fmt.Println("-----------------------------Connection created-----------------------------")
 	fmt.Println("  <YOU>\t\t\t\t\t\t\t\t<Peer>")
 
-	go receiveMessages(conn)
-	go sendMessages(conn)
+	done := make(chan struct{})
+	go receiveMessages(conn, done)
+	go sendMessages(conn, done)
 }
 
 func connectToPeer(peer model.Client) {
-	peerAddr := fmt.Sprintf("%v:%v", peer.Host, peer.Port)
+	peerAddr := peer.Address()
 
 	for {
 		connection, err := net.Dial("tcp", peerAddr)
@@ -103,33 +103,40 @@ func connectToPeer(peer model.Client) {
 	}
 }
 
-func receiveMessages(conn net.Conn) {
-	defer conn.Close()
+func receiveMessages(conn net.Conn, done chan struct{}) {
 	reader := bufio.NewReader(conn)
 
 	for {
 		msg, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("Connection lost")
-			return
+			fmt.Println("\nConnection lost")
+			break
 		}
 		fmt.Printf("\n\t\t\t\t\t\t\t\t %s ", msg)
 	}
+
+	close(done)
 }
 
-func sendMessages(conn net.Conn) {
-	defer conn.Close()
+func sendMessages(conn net.Conn, done chan struct{}) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Print("\n ")
-		scanner.Scan()
-		msg := scanner.Text()
-
-		_, err := fmt.Fprintln(conn, msg)
-		if err != nil {
-			fmt.Println("Error sending message:", err)
+		select {
+		case <-done:
 			return
+		default:
+			fmt.Print("\n ")
+			if !scanner.Scan() {
+				return
+			}
+			msg := scanner.Text()
+
+			_, err := fmt.Fprintln(conn, msg)
+			if err != nil {
+				fmt.Println("Error sending message:", err)
+				return
+			}
 		}
 	}
 }
