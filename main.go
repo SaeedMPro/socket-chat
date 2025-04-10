@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/SaeedMPro/socket-chat/config"
@@ -20,7 +19,6 @@ import (
 var (
 	clientConfig model.Config
 	currentConn  net.Conn
-	connMux      sync.Mutex
 )
 
 func init() {
@@ -62,7 +60,7 @@ func startListener(self model.Client) {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		go handleNewConnection(connection)
+		handleNewConnection(connection)
 	}
 }
 
@@ -76,15 +74,12 @@ func connectToPeer(peer model.Client) {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		go handleNewConnection(connection)
+		handleNewConnection(connection)
 		break
 	}
 }
 
 func handleNewConnection(conn net.Conn) {
-	connMux.Lock()
-	defer connMux.Unlock()
-
 	if currentConn != nil {
 		currentConn.Close()
 	}
