@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"sync"
+	"time"
 
 	"github.com/SaeedMPro/socket-chat/config"
 	"github.com/SaeedMPro/socket-chat/model"
@@ -15,7 +15,6 @@ import (
 var (
 	clientConfig model.Config
 	currentConn  net.Conn
-	connMux      sync.Mutex
 )
 
 func init() {
@@ -37,7 +36,7 @@ func main() {
 	self, other := config.GetClientConfig(clientType, clientConfig)
 
 	go startListener(self)
-	connectToPeer(other)
+	go connectToPeer(other)
 
 	select {}
 }
@@ -54,6 +53,7 @@ func startListener(self model.Client) {
 		connection, err := listener.Accept()
 		if err != nil {
 			fmt.Printf("Connection error: %v\n", err)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		handleNewConnection(connection)
@@ -63,11 +63,12 @@ func startListener(self model.Client) {
 
 func connectToPeer(peer model.Client) {
 	peerAddr := peer.Address()
-	
+
 	for {
 		connection, err := net.Dial("tcp", peerAddr)
 		if err != nil {
 			fmt.Printf("Connection attempt failed: %v\n", err)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		handleNewConnection(connection)
@@ -76,9 +77,6 @@ func connectToPeer(peer model.Client) {
 }
 
 func handleNewConnection(conn net.Conn) {
-	connMux.Lock()
-	defer connMux.Unlock()
-
 	if currentConn != nil {
 		currentConn.Close()
 	}
@@ -89,13 +87,13 @@ func handleNewConnection(conn net.Conn) {
 	fmt.Println("  <YOU>\t\t\t\t\t\t\t\t<Peer>")
 
 	done := make(chan struct{})
-	go receiveMessages(conn, done)
 	go sendMessages(conn, done)
+	go receiveMessages(conn, done)
 }
 
 func receiveMessages(conn net.Conn, done chan struct{}) {
 	reader := bufio.NewReader(conn)
-	
+
 	for {
 		msg, err := reader.ReadString('\n')
 		if err != nil {
