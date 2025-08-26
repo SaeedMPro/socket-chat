@@ -19,6 +19,7 @@ func (c *ChatClient) receiveMessages() {
 		if err != nil {
 			if err == io.EOF {
 				ui.ShowMessage("\nPeer disconnected")
+				ui.AddMessage("Peer disconnected")
 			}
 			break
 		}
@@ -29,6 +30,7 @@ func (c *ChatClient) receiveMessages() {
 		} else {
 			ui.DisplayPeerMessage(msg)
 		}
+		ui.AddMessage("PEER: " + msg)
 	}
 }
 

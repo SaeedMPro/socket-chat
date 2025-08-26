@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/SaeedMPro/socket-chat/config"
+	"github.com/SaeedMPro/socket-chat/internal/transport"
 	"github.com/SaeedMPro/socket-chat/internal/ui"
 	"github.com/SaeedMPro/socket-chat/model"
 )
@@ -40,6 +41,15 @@ func (c *ChatClient) startListener() {
 		return
 	}
 	defer listener.Close()
+
+	go ui.ServeWebUI(fmt.Sprintf(":%d", c.Self.UIPort),
+		func(msg string) {
+			transport.SendMessage(c.conn, msg)
+		},
+		func(path string) {
+			transport.SendFile(c.conn, path)
+		},
+	)
 
 	for {
 		conn, err := listener.Accept()

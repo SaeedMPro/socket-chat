@@ -1,4 +1,3 @@
-// internal/transport/message.go
 package transport
 
 import (
