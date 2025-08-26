@@ -1,10 +1,12 @@
 {
-    "client-one" :{
-      "host": "localhost",
-      "port": 3000
-    },
-    "client-two" : {
-      "host": "localhost",
-      "port": 8000
-    }
+  "client-one": {
+    "host": "localhost",
+    "port": 8000,
+    "ui_port": 8080
+  },
+  "client-two": {
+    "host": "localhost",
+    "port": 9000,
+    "ui_port": 9090
+  }
 }

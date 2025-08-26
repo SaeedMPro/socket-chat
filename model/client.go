@@ -3,8 +3,9 @@ package model
 import "fmt"
 
 type Client struct {
-	Host string
-	Port int
+	Host   string
+	Port   int
+	UIPort int  `json:"ui_port"`
 }
 
 func (c *Client) Address() string {
