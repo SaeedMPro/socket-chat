@@ -22,8 +22,7 @@ func main() {
 	clientType := os.Args[1]
 	err := config.LoadConfig("./config/config.json", &clientConfig)
 	if err != nil {
-		fmt.Println("Error loading config:", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("error loading config: %v", err))
 	}
 
 	client.New(clientType, clientConfig).Run()
