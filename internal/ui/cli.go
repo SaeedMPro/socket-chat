@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-func InitUI() {
+func InitCliUI() {
 	clearScreen()
 	fmt.Println("----------------------------- Socket Chat -----------------------------")
 	fmt.Println("  <YOU>\t\t\t\t\t\t\t\t<Peer>")
