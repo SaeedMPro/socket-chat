@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Socket Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    #chat {
+      width: 100%;
+      max-width: 600px;
+      height: 350px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    #chat div {
+      padding: 6px 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+    }
+
+    #chat div:nth-child(odd) {
+      background: #f1f1f1;
+    }
+
+    #chat div:nth-child(even) {
+      background: #e0f7fa;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 250px;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    input[type="file"] {
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Socket Chat</h2>
+  <div id="chat"></div>
+
+  <div class="controls">
+    <input id="msg" type="text" placeholder="Type a message" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <div class="controls">
+    <input type="file" id="fileInput" />
+    <button onclick="sendFile()">Send File</button>
+  </div>
+
+  <script>
+    function sendMessage() {
+      let msg = document.getElementById("msg").value;
+      fetch("/send", {
+        method: "POST",
+        body: new URLSearchParams({ msg }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      });
+      document.getElementById("msg").value = "";
+    }
+
+    async function sendFile() {
+      let fileInput = document.getElementById("fileInput");
+      if (fileInput.files.length === 0) return;
+
+      let file = fileInput.files[0];
+      let formData = new FormData();
+      formData.append("file", file);
+
+      await fetch("/upload", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
+    async function pollMessages() {
+      let resp = await fetch("/messages");
+      let text = await resp.text();
+      let msgs = text.trim().split("\n");
+      let chat = document.getElementById("chat");
+      chat.innerHTML = msgs.map(m => `<div>${m}</div>`).join("");
+      chat.scrollTop = chat.scrollHeight; 
+    }
+
+    setInterval(pollMessages, 1000);
+  </script>
+</body>
+</html>
