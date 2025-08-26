@@ -74,7 +74,7 @@ func (c *ChatClient) handleNewConnection(conn net.Conn) {
 	c.conn = conn
 	c.connState <- struct{}{}
 
-	ui.InitUI()
+	ui.InitCliUI()
 
 	go c.receiveMessages()
 	go c.sendMessages()
